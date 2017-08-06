@@ -7,6 +7,15 @@
  */
 package io.tesla.lifecycle.profiler;
 
+import org.apache.maven.plugin.MojoExecution;
+import org.codehaus.plexus.logging.Logger;
+
 public interface SessionProfileRenderer {
-  public void render(SessionProfile sessionProfile);
+    void start(MojoExecution mojo);
+
+    void finish(MojoExecution mojo);
+
+    void render();
+
+    void setLogger(Logger logger);
 }

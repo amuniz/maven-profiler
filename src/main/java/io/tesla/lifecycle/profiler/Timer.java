@@ -9,7 +9,9 @@ package io.tesla.lifecycle.profiler;
 
 public interface Timer {
 
-  void stop();
-  long getTime();
-  String format(long elapsedTime);
+    void stop();
+
+    void start();
+
+    long getTime();
 }
