@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -104,8 +106,13 @@ public class DefaultSessionProfileRenderer implements SessionProfileRenderer {
                 }
                 line.append("\n"); // only for file
                 renderFile.write(line.toString().getBytes());
-
             }
+            line = new StringBuilder();
+            line.append("\n");
+            line.append("Collecting data since: ");
+            Date date = new Date(Long.parseLong((String) p.get("start.time")));
+            line.append(date);
+            renderFile.write(line.toString().getBytes());
         } catch (IOException e) {
             logger.error("[TIMING] Can not save the timing render file", e);
         }
@@ -127,14 +134,24 @@ public class DefaultSessionProfileRenderer implements SessionProfileRenderer {
         p = new Properties();
         try (FileInputStream inputStream = new FileInputStream(getTimingFile())) {
             p.load(inputStream);
+            setStartTime(p);
             Enumeration<?> props = p.propertyNames();
             while (props.hasMoreElements()) {
                 String key = (String) props.nextElement();
                 String value = p.getProperty(key);
+                if ("start.time".equals(key)) {
+                    continue;
+                }
                 mojoTimes.put(key, new DefaultTimer(Long.parseLong(value)));
             }
         } catch (IOException e) {
             logger.error("[TIMING] Can not open the timing file", e);
+        }
+    }
+
+    private void setStartTime(Properties p) {
+        if (p.get("start.time") == null) {
+            p.setProperty("start.time", String.valueOf(System.currentTimeMillis()));
         }
     }
 
