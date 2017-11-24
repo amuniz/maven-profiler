@@ -19,11 +19,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Calendar;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 @Named
@@ -69,16 +71,23 @@ public class DefaultSessionProfileRenderer implements SessionProfileRenderer {
         }
         try (FileOutputStream renderFile = new FileOutputStream(getRenderFile())) {
             int max = 0;
-            for(Map.Entry<String, Timer> entry : mojoTimes.entrySet()) {
+            for(Entry<String, Timer> entry : mojoTimes.entrySet()) {
                 int length = entry.getKey().length();
                 if (length > max) {
                     max = length;
                 }
             }
             StringBuilder line = new StringBuilder();
+            line.append("Collecting data since: ");
+            Date date = new Date(Long.parseLong((String) p.get("start.time")));
+            line.append(date);
+            line.append("\n");
+            line.append("------------------------------------------------------------------------\n");
+            renderFile.write(line.toString().getBytes());
             if (logActive) {
                 logger.info("------------------------------------------------------------------------");
             }
+            line = new StringBuilder();
             line.append("MOJO");
             for (int i = 0; i < max - 1; i++) {
                 line.append(" ");
@@ -90,7 +99,8 @@ public class DefaultSessionProfileRenderer implements SessionProfileRenderer {
             line.append("\n\n"); // Only for file
             renderFile.write(line.toString().getBytes());
 
-            for(Map.Entry<String, Timer> entry : mojoTimes.entrySet()) {
+            List<Entry<String, Timer>> ordered = getOrderedList(mojoTimes);
+            for(Entry<String, Timer> entry : ordered) {
                 line = new StringBuilder();
                 line.append(entry.getKey().replace("--", ":"));
                 int keyLength = entry.getKey().length();
@@ -107,16 +117,31 @@ public class DefaultSessionProfileRenderer implements SessionProfileRenderer {
                 line.append("\n"); // only for file
                 renderFile.write(line.toString().getBytes());
             }
-            line = new StringBuilder();
-            line.append("\n");
-            line.append("Collecting data since: ");
-            Date date = new Date(Long.parseLong((String) p.get("start.time")));
-            line.append(date);
-            renderFile.write(line.toString().getBytes());
         } catch (IOException e) {
             logger.error("[TIMING] Can not save the timing render file", e);
         }
 
+    }
+
+    private List<Entry<String,Timer>> getOrderedList(Map<String, Timer> mojoTimes) {
+        // Create something orderable
+        Entry<String, Timer>[] entries = new Entry[mojoTimes.size()];
+        int i = 0;
+        for (Entry<String, Timer> entry : mojoTimes.entrySet()) {
+            entries[i] = entry;
+            i++;
+        }
+        // re-order
+        for (i = 0; i < entries.length; i++) {
+            for (int j = i + 1; j < entries.length; j++) {
+                if (entries[i].getValue().getTime() < entries[j].getValue().getTime()) {
+                    Entry<String, Timer> temp = entries[j];
+                    entries[j] = entries[i];
+                    entries[i] = temp;
+                }
+            }
+        }
+        return Arrays.asList(entries);
     }
 
     @Override
